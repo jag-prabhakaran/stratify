@@ -29,23 +29,36 @@ figures = [
         'title': 'Line Plot',
         'figure': go.Figure(data=go.Scatter(x=[1, 2, 3], y=[4, 1, 2], mode='lines')),
         'insight': 'This is a line plot showing a decreasing trend.',
+        'is_map': False
     },
     {
         'title': 'Bar Chart',
         'figure': go.Figure(data=go.Bar(x=[1, 2, 3], y=[2, 5, 3])),
         'insight': 'This bar chart shows that the second category has the highest value.',
+        'is_map': False
     },
     {
         'title': 'Pie Chart',
         'figure': go.Figure(data=go.Pie(labels=['A', 'B', 'C'], values=[30, 50, 20])),
         'insight': 'This pie chart shows that category B is the largest.',
+        'is_map': False
     },
     {
         'title': 'Scatter Plot',
         'figure': go.Figure(data=go.Scatter(x=[1, 2, 3], y=[2, 4, 5], mode='markers')),
         'insight': 'This scatter plot shows a positive correlation.',
+        'is_map': False
+    },
+    {
+        'title': 'Map Plot',
+        'figure': go.Figure(data=go.Scattergeo(lon=[-75, -80, -70], lat=[45, 50, 40], mode='markers')).update_layout(height=600, margin={"r":0,"t":0,"l":0,"b":0}),
+        'insight': 'This is a map plot showing geographic locations.',
+        'is_map': True
     }
 ]
+
+# Sort figures with map type first
+figures.sort(key=lambda x: not x['is_map'])
 
 app.layout = html.Div([
     html.H1("Dashboard with Sidebar and Dynamic Graph Boxes", className='main-title'),
@@ -73,12 +86,9 @@ def update_graph_container(_):
     for item in figures:
         graph_box = html.Div([
             html.H3(item['title'], className='graph-title'),
-            html.Div([
-                html.Div(dcc.Graph(figure=item['figure']), className='graph'),
-                html.Div(item['insight'], className='insight')
-            ], className='graph-insight')
+            html.Div(dcc.Graph(figure=item['figure']), className='graph')
         ],
-            className='graph-box'
+            className='graph-box double-width' if item.get('is_map') else 'graph-box'
         )
         graph_boxes.append(graph_box)
     return graph_boxes

@@ -67,34 +67,17 @@ body {
     border: 2px solid #3498db;
     padding: 20px;
     margin: 10px;
-    border-radius: 5px;
+    border-radius: 10px; /* Rounded corners */
     background-color: white;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
-/* Graph title */
-.graph-title {
-    text-align: center;
-    font-size: 1.8rem;
-    margin-bottom: 15px;
-}
-
-/* Graph and insight container */
-.graph-insight {
-    display: flex;
-    align-items: center;
+/* Double width for map plots */
+.double-width {
+    grid-column: span 2;
 }
 
 /* Graph */
 .graph {
-    width: 70%; /* Adjusted width to fill the box */
-}
-
-/* Insight */
-.insight {
-    width: 30%; /* Adjusted width to fill the box */
-    border: 1px solid #3498db;
-    padding: 10px;
-    margin: 10px;
-    border-radius: 5px;
+    width: 100%; /* Adjusted width to fill the box */
 }
