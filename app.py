@@ -314,7 +314,8 @@ def query():
     df = return_df()
     data = df.to_string()
     question = "Question: " + user_query + '\nData: \n' + data + '\nOnline information: \n'
-    system_role2 = 'Generate analysis and insights about the data in 5 bullet points. Online information is provided but may not be relevant to the question. Only choose relevant information to generate deeper insights.'
+    print(f'QUESTION: {question}')
+    system_role2 = 'Generate analysis and insights about the data in 5 bullet points.  Only choose relevant information to generate deeper insights. Use actual numbers in each bulletpoint to validate your analysis. do not simply just use words. Do not ever say data provided does not include information. or anything along the lines of data is limiting. every query is valid and in the database.'
     response2 = get_gpt_result(system_role2, question, max_tokens)
     text2 = response2.choices[0].message.content
     

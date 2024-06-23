@@ -5,23 +5,18 @@ def return_df():
     # Create a connection to the database
     conn = sqlite3.connect('climate.db')
 
-    # Create a cursor object
-    c = conn.cursor()
+    # Define the SQL query
+    query = "SELECT Year, SUM(CO2_emission) as Total_CO2_Emission FROM co2_and_energy GROUP BY Year ORDER BY Year"
 
-    # Execute the SQL query
-    c.execute("SELECT * FROM co2_and_energy LIMIT 5")
+    # Execute the query and store the result in a dataframe
+    df = pd.read_sql_query(query, conn)
 
-    # Fetch all the rows
-    rows = c.fetchall()
-
-    # Create a dataframe from the rows
-    df = pd.DataFrame(rows, columns=['column1', 'column2', 'column3', 'column4', 'column5'])
-
-    # Close the connection
+    # Close the connection to the database
     conn.close()
 
     # Return the dataframe
     return df
 
-# Print the dataframe
-print(return_df())
+# Call the function and print the dataframe
+df = return_df()
+print(df)

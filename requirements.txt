@@ -2,8 +2,16 @@ llama-index-callbacks-arize-phoenix
 llama-index-embeddings-openai
 pyvis
 arize-phoenix
+opentelemetry-instrumentation-flask
 llama-index-llms-openai
 pandas
 numpy
 llama-index
 flask
+opentelemetry-instrumentation==0.46b0
+opentelemetry-sdk==1.25.0
+opentelemetry-api==1.25.0
+opentelemetry-semantic-conventions==0.46b0
+opentelemetry-instrumentation-wsgi==0.46b0
+opentelemetry-instrumentation-flask==0.46b0
+opentelemetry-instrumentation-sqlalchemy==0.46b0

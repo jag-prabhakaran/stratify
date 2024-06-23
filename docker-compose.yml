@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    platform: linux/amd64
+    ports:
+      - "6006:6006"  # UI and OTLP HTTP collector
+      - "4317:4317"  # OTLP gRPC collector
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6006 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  flask_app:
+    build: .
+    ports:
+      - "8222:8222"
+    environment:
+      - OPENAI_API_KEY=sk-proj-ZM51aF94F9s9LMnhNuH7T3BlbkFJiHyWZz423294SFitiFb2
+      - COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
+    depends_on:
+      phoenix:
+        condition: service_healthy
