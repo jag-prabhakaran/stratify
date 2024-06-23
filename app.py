@@ -1,6 +1,14 @@
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+import plotly.graph_objects as go
+from flask import Flask, redirect, url_for, render_template_string
 from llama_index.core.agent import QueryPipelineAgentWorker
 from flask import Flask, request, jsonify, render_template
 from llama_index.core import SQLDatabase
+import openai
+import importlib.util
+import os
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -295,7 +303,7 @@ def plotly_template():
     },
     {
         'title': 'Map Plot',
-        'figure': go.Figure(data=go.Scattergeo(lon=[-75, -80, -70], lat=[45, 50, 40], mode='markers')).update_layout(height=600, margin={"r":0,"t":0,"l":0,"b":0}),
+        'fig' = go.Figure(data=go.Choropleth( locations=df['Country'], locationmode='country names', z=df['Total_CO2_Emissions'], colorscale='Plasma', colorbar_title='CO2 Emissions',)).update_layout(title='CO2 Emissions Density by Country', geo=dict( showframe=False, showcoastlines=False, projection_type='equirectangular' ), height=600, margin={"r":0,"t":0,"l":0,"b":0})
         'insight': 'This is a map plot showing geographic locations.',
         'is_map': True
     }
@@ -303,6 +311,7 @@ def plotly_template():
     
 def context(query: str) -> Task:
     context = "\n".join([f"Table {info.table_name}: {info.table_summary} {info.table_name} columns: {info.column_names}" for info in table_infos])
+    print(context)
     full_query = f"{query}\nHere is info about the tables: \n{context}"
     return full_query
     
@@ -313,11 +322,14 @@ def index():
     return render_template('index.html')
 
 @app.route('/query', methods=['POST'])
+@app.route('/query', methods=['POST'])
 def query():
     data = request.json
     user_query = data.get('query')
-    adhoc = False
+    adhoc = data.get('adhoc', False)
+
     if adhoc:
+        # Ad-hoc query handling
         task = create_task_with_table_context(user_query)
         step_output = agent.run_step(task.task_id)
         step_output.is_last = True
@@ -359,15 +371,14 @@ def query():
         df = return_df()
         data = df.to_string()
         question = "Question: " + user_query + '\nData: \n' + data + '\nOnline information: \n'
-        print(f'QUESTION: {question}')
         system_role2 = 'Generate analysis and insights about the data in 5 bullet points.  Only choose relevant information to generate deeper insights. Use actual numbers in each bulletpoint to validate your analysis. do not simply just use words. Do not ever say data provided does not include information. or anything along the lines of data is limiting. every query is valid and in the database.'
         response2 = get_gpt_result(system_role2, question, max_tokens)
         text2 = response2.choices[0].message.content
         
         return jsonify({"sql_query": text2})
     else:
+        # Structured query handling
         max_tokens = 2500
-        print("starting else:")
         system_role = '''generate questions to serve as basis to generate sql query. you simply return 5 bullet point questions do not write any queries.'''
         quest_order = 'can you give me 5 question to track co2 emissions per country, change in temperature over time, types of energy consumptions, and to your choice 2 different interesting graphs from the data provided. ythese quesitons serve as the basis for me to generate sql queries. There should be 5 types of graphs that plotly can make. these questions should answer for 1. map graph, 2. scatter plot, 3 bar graph, 4. pie chart, 5. line graph. I need quesitons to generate exactly those 5 graphs. Do not give vague questions. say with specificity. i.e no saying specific year give me the actual year instead. okay so also dont tell me what type of graph everything is. just follow this order of 1-5 and those types as well.'
         
@@ -387,12 +398,22 @@ def query():
                     {"role": "user", "content": question}
                 ]
             )
-
             return response
+        
+        def save_python2(ipt, filename):
+            with open(filename, "w") as py_file:
+                py_file.write(ipt)
+
+        def import_and_run(filename):
+            spec = importlib.util.spec_from_file_location("module.name", filename)
+            foo = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(foo)
+            return foo.return_df()
+
+            
         response = get_gpt_result(system_role, question, max_tokens)
         text = response.choices[0].message.content
         question_list = text.split("\n")
-        print(f'these are the questions beins asked {question_list}')
         
         sql_queries = []
         for question in question_list:
@@ -403,32 +424,49 @@ def query():
             result = sql_query['input']
             sql_queries.append(result)
         dfs_list = []
-        for q in sql_queries:
+        dfs_df = []
+        for i, q in enumerate(sql_queries):
+            print(f"SQL Query {i}: {q}")  # Debugging: Print SQL Query
             system_role = f'Write python code to select relevant data. Use the SQL query provided to connect to the Database and retrieve data. The database name is {database}.db. Please create a data frame from relevant data and print the dataframe. Only use the sql i provide and do not generate your own. create a function called return_df() to return the df. The db name is {database}. Do not limit data at all.'
             max_tokens = 2500
-            
-            question = f"Question: {user_query} \nSQL Query: {result}"
-            
-            client = OpenAI()
+
+            question = f"SQL Query: {q}"
             
             response = get_gpt_result(system_role, question, max_tokens)
             text = response.choices[0].message.content
             try:
                 matches = find_all(text, "```")
                 matches_list = [x for x in matches]
-
-                python = text[matches_list[0] + 10:matches_list[1]]
+                python_code = text[matches_list[0] + 9:matches_list[1]]
             except:
-                python = text
+                python_code = text
+
+
+            filename = f"demo_b{i}.py"
+            save_python2(python_code, filename)
             
-            save_python(python)
-            from demo import return_df
-            df = return_df()
+            df = import_and_run(filename)
+            dfs_df.append(df)
             data = df.to_string()
             dfs_list.append(data)
         
+        
+        print("||||||||||||||||||||||||||||||||")
+        print(dfs_df)
+        print("||||||||||||||||||||||||||||||||")
+            
+        import pickle
+        with open('dataframes_list.pkl', 'wb') as f:
+            pickle.dump(dfs_df, f)
+        
         temp = plotly_template()
-        system_role = f'Generate python code for plotly graphs in the provided template for the requested infromation along with the questions they are answering for context with the df in mind. the plots should be in this order: 1. map graph, 2. scatter plot, 3 bar graph, 4. pie chart, 5. line graph. Only use this format and return in square brackets as such do not return anything else.\n' + temp + "Questions for context:\n" + ",".join(question_list)
+        cols = []
+        for df in dfs_df:
+            col = df.columns.tolist()
+            cols.append(",".join(col))
+        
+            
+        system_role = f'Generate python code for plotly graphs in the provided template for the requested infromation along with the questions they are answering for context with the df in mind. Make sure you pass in the relevant column names for each graph (each graph represents different metrics). I need title, fig, insight, and is_map. the plots should be in this order: 1. map graph, 2. scatter plot, 3 bar graph, 4. pie chart, 5. line graph. Only use this format and return in square brackets as such do not return anything else.\n. Use these column names as well. Each df has a list cols seperated by commas. each df itself is seperated by |' + "|".join(cols) + temp + "Questions for context:\n" + ",".join(question_list)
         question = ''
         for i in range(len(dfs_list)):
             question = "1: " + dfs_list[i]
@@ -436,8 +474,37 @@ def query():
         response = get_gpt_result(system_role, question, max_tokens)
         text = response.choices[0].message.content
         
-        return jsonify({"sql_query": text})
+        question = "Generate python code to return this list in a function  bagel_tron to return this list formatted properly. have this import at the top import plotly.graph_objects as go. for example def return_list(dfs_df): figures = [...]. the function will take in one params but only return the list itself formatted the way i want. ill also be passing in a list of dataframes. the 0th df dfs_df[0] correlates as the df for the first plot to be created. 1st to 1st and so on. rn each df is just called df though. YOU HAVE TO CREATE A FUNCTION CALLED bagel_tron TO RETURN THIS LIST. " + text
+        system_role = "Generate python code with a function and this import plotly.graph_objects as go"
         
+        response = get_gpt_result(system_role, question, max_tokens)
+        text = response.choices[0].message.content
+        try:
+                matches = find_all(text, "```")
+                matches_list = [x for x in matches]
+
+                python = text[matches_list[0] + 10:matches_list[1]]
+        except:
+                python = text
+            
+        py_file = open("dashlist.py", "w")
+        py_file.write(python)
+        py_file.close()
+        
+        from dashlist import bagel_tron
+        # save it for debug
+
+        
+
+        lst = bagel_tron(dfs_df)
+        
+        
+
+        
+        
+        
+        return jsonify({"sql_query": repr(lst)})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8222)

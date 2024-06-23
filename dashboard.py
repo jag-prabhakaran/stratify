@@ -1,13 +1,14 @@
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 from flask import Flask, redirect, url_for, render_template_string
 
-app = dash.Dash(__name__)
+def big_func(lst, figures):
+    app = dash.Dash(__name__)
 
-# External stylesheet for Google Fonts and custom CSS
-external_stylesheets = [
+    # External stylesheet for Google Fonts and custom CSS
+    external_stylesheets = [
     {
         "href": "https://fonts.googleapis.com/css2?family=Proxima+Nova&display=swap",
         "rel": "stylesheet",
@@ -21,14 +22,14 @@ external_stylesheets = [
         "rel": "stylesheet",
     },
     "/static/css/styles.css",
-]
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+    ]
+    app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-# Flask server instance
-server = app.server
+    # Flask server instance
+    server = app.server
 
-# Example list of figures with titles and insights
-figures = [
+    # Example list of figures with titles and insights
+    '''figures = [
     {
         'title': 'Line Plot',
         'figure': go.Figure(data=go.Scatter(x=[1, 2, 3], y=[4, 1, 2], mode='lines')),
@@ -59,13 +60,13 @@ figures = [
         'insight': 'This is a map plot showing geographic locations.',
         'is_map': True
     }
-]
+    ]'''
 
-# Sort figures with map type first
-figures.sort(key=lambda x: not x['is_map'])
+    # Sort figures with map type first
+    figures.sort(key=lambda x: not x['is_map'])
 
-# Layout for the main dashboard
-app.layout = html.Div([
+    # Layout for the main dashboard
+    app.layout = html.Div([
     html.H1("Dashboard with Sidebar and Dynamic Graph Boxes", className='main-title'),
     html.Div([
         # Sidebar
@@ -80,145 +81,233 @@ app.layout = html.Div([
         # Main content
         html.Div(id='graph-container', className='main-content')
     ], className='dashboard-container')
-])
+    ])
 
-# Callback to update graph container
-@app.callback(
+    # Callback to update graph container
+    @app.callback(
     Output('graph-container', 'children'),
     Input('graph-container', 'id')
-)
-def update_graph_container(_):
-    graph_boxes = []
-    for item in figures:
-        graph_box = html.Div([
-            html.A([
-                html.H3(item['title'], className='graph-title'),
-            ], href=f"/graph/{item['title']}"),
-            html.Div(dcc.Graph(figure=item['figure']), className='graph')
-        ],
-            className='graph-box double-width' if item.get('is_map') else 'graph-box'
-        )
-        graph_boxes.append(graph_box)
-    return graph_boxes
+    )
+    def update_graph_container(_):
+        graph_boxes = []
+        for item in figures:
+            graph_box = html.Div([
+                html.A([
+                    html.H3(item['title'], className='graph-title'),
+                ], href=f"/graph/{item['title']}"),
+                html.Div(dcc.Graph(figure=item['figure']), className='graph')
+            ],
+                className='graph-box double-width' if item.get('is_map') else 'graph-box'
+            )
+            graph_boxes.append(graph_box)
+        return graph_boxes
 
-# Flask route for larger graph view
-@server.route('/graph/<title>')
-def graph_page(title):
+    # Flask route for larger graph view
+    @server.route('/graph/<title>')
+    def graph_page(title):
     # Find the corresponding figure
-    figure_data = next((item for item in figures if item['title'] == title), None)
-    if not figure_data:
-        return "Graph not found", 404
-    
-    figure = figure_data['figure']
-    insight = figure_data['insight']
-    is_map = figure_data['is_map']
-    
-    # Render the graph page using Plotly's JavaScript library
-    graph_html = figure.to_html(full_html=False, include_plotlyjs='cdn')
-    
-    return render_template_string("""
-        <html>
-        <head>
-            <title>{{ title }}</title>
-            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-            <style>
-                body {
-                    font-family: 'Proxima Nova', sans-serif;
-                    background-color: #f4f4f4;
-                    margin: 0;
-                    padding: 0;
-                }
-                .main-title {
-                    font-size: 2.5rem;
-                    text-align: center;
-                    padding: 20px 0;
-                    margin-bottom: 20px;
-                }
-                .dashboard-container {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    min-height: 100vh;
-                }
-                .sidebar {
-                    width: 20%;
-                    background-color: #2c3e50;
-                    padding: 20px;
-                    border-radius: 5px;
-                    height: 100%;
-                    overflow-y: auto;
-                    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                }
-                .sidebar-list {
-                    list-style-type: none;
-                    padding: 0;
-                }
-                .sidebar-item {
-                    color: white;
-                    text-decoration: none;
-                    font-size: 1.5rem;
-                    padding: 15px 0;
-                }
-                .sidebar-item:hover {
-                    background-color: #1a252f;
-                }
-                .main-content {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr); /* Two boxes per line */
-                    gap: 20px; /* Spacing between graph boxes */
-                    width: 80%; /* Adjusted width to accommodate the sidebar */
-                    margin-left: 20%; /* Adjusted margin to accommodate the sidebar */
-                    padding: 20px; /* Padding around the main content */
-                }
-                .graph-box {
-                    border: 2px solid #3498db;
-                    padding: 20px;
-                    margin: 10px;
-                    border-radius: 10px; /* Rounded corners */
-                    background-color: white;
-                    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-                    transition: transform 0.2s ease-in-out;
-                }
-                .graph-box:hover {
-                    transform: scale(1.02);
-                }
-                .double-width {
-                    grid-column: span 2;
-                }
-                .graph {
-                    width: 100%; /* Adjusted width to fill the box */
-                }
-                .graph-title {
-                    text-align: center;
-                    font-size: 1.8rem;
-                    margin-bottom: 15px;
-                }
-                .back-button {
-                    display: inline-block;
-                    padding: 10px 20px;
-                    background-color: #3498db;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    margin-top: 20px;
-                }
-                .back-button:hover {
-                    background-color: #1e6fa8;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="graph-box-large">
-                <h2 style="text-align: center;">{{ title }}</h2>
-                <div style="width: 100%; height: 80vh;">{{ graph_html | safe }}</div>
-                <a href="/" class="back-button">Back to Dashboard</a>
-            </div>
-        </body>
-        </html>
-    """, title=title, graph_html=graph_html)
+        figure_data = next((item for item in figures if item['title'] == title), None)
+        if not figure_data:
+            return "Graph not found", 404
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+        figure = figure_data['figure']
+        insight = figure_data['insight']
+        is_map = figure_data['is_map']
+
+        # Render the graph page using Plotly's JavaScript library
+        graph_html = figure.to_html(full_html=False, include_plotlyjs='cdn')
+
+        return render_template_string("""
+            <html>
+            <head>
+                <title>{{ title }}</title>
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+                <style>
+                    body {
+                        font-family: 'Proxima Nova', sans-serif;
+                        background-color: #f4f4f4;
+                        margin: 0;
+                        padding: 0;
+                    }
+                    .main-title {
+                        font-size: 2.5rem;
+                        text-align: center;
+                        padding: 20px 0;
+                        margin-bottom: 20px;
+                    }
+                    .dashboard-container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        min-height: 100vh;
+                    }
+                    .sidebar {
+                        width: 20%;
+                        background-color: #2c3e50;
+                        padding: 20px;
+                        border-radius: 5px;
+                        height: 100%;
+                        overflow-y: auto;
+                        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                    }
+                    .sidebar-list {
+                        list-style-type: none;
+                        padding: 0;
+                    }
+                    .sidebar-item {
+                        color: white;
+                        text-decoration: none;
+                        font-size: 1.5rem;
+                        padding: 15px 0;
+                    }
+                    .sidebar-item:hover {
+                        background-color: #1a252f;
+                    }
+                    .main-content {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr); /* Two boxes per line */
+                        gap: 20px; /* Spacing between graph boxes */
+                        width: 80%; /* Adjusted width to accommodate the sidebar */
+                        margin-left: 20%; /* Adjusted margin to accommodate the sidebar */
+                        padding: 20px; /* Padding around the main content */
+                    }
+                    .graph-box {
+                        border: 2px solid #3498db;
+                        padding: 20px;
+                        margin: 10px;
+                        border-radius: 10px; /* Rounded corners */
+                        background-color: white;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                        transition: transform 0.2s ease-in-out;
+                    }
+                    .graph-box:hover {
+                        transform: scale(1.02);
+                    }
+                    .double-width {
+                        grid-column: span 2;
+                    }
+                    .graph {
+                        width: 100%; /* Adjusted width to fill the box */
+                    }
+                    .graph-title {
+                        text-align: center;
+                        font-size: 1.8rem;
+                        margin-bottom: 15px;
+                    }
+                    .back-button {
+                        display: inline-block;
+                        padding: 10px 20px;
+                        background-color: #3498db;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        margin-top: 20px;
+                    }
+                    .back-button:hover {
+                        background-color: #1e6fa8;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="graph-box-large">
+                    <h2 style="text-align: center;">{{ title }}</h2>
+                    <div style="width: 100%; height: 80vh;">{{ graph_html | safe }}</div>
+                    <a href="/" class="back-button">Back to Dashboard</a>
+                </div>
+            </body>
+            </html>
+        """, title=title, graph_html=graph_html)
+
+    if __name__ == '__main__':
+        app.run_server(debug=True)
+        
+import pickle
+
+with open('dataframes_list.pkl', 'rb') as file:
+    dfs_df = pickle.load(file)
+    
+print(dfs_df[0])
+    
+figures = [
+        {
+            'title': 'CO2 Emissions Density by Country',
+            'figure': go.Figure(data=go.Choropleth(
+                locations=dfs_df[0]['Country'], 
+                locationmode='country names', 
+                z=dfs_df[0]['Total_CO2_Emission'], 
+                colorscale='Plasma', 
+                colorbar_title='CO2 Emissions',
+            )).update_layout(
+                title='CO2 Emissions Density by Country', 
+                geo=dict(showframe=False, showcoastlines=False, projection_type='equirectangular'), 
+                height=600, 
+                margin={"r":0,"t":0,"l":0,"b":0}
+            ),
+            'insight': 'This map shows the total CO2 emissions for each country in the year 2010.',
+            'is_map': True
+        },
+        {
+            'title': 'Global Temperature Anomaly vs CO2 Emissions',
+            'figure': go.Figure(data=go.Scatter(
+                x=dfs_df[1]['Year'], 
+                y=dfs_df[1]['Anomaly'], 
+                mode='markers',
+                marker=dict(
+                    size=dfs_df[1]['Total_CO2_emission'],
+                    sizemode='area',
+                    sizeref=2.*max(dfs_df[1]['Total_CO2_emission'])/(40.**2),
+                    sizemin=4
+                ),
+                name='CO2 Emissions'
+            )).update_layout(
+                title='Global Temperature Anomaly vs CO2 Emissions',
+                xaxis_title='Year',
+                yaxis_title='Temperature Anomaly',
+                showlegend=True
+            ),
+            'insight': 'This scatter plot shows the correlation between the change in global temperature anomaly and the total global CO2 emissions from 1960 to 2010.',
+            'is_map': False
+        },
+        {
+            'title': 'Energy Consumption by Type in the US (2000)',
+            'figure': go.Figure(data=go.Bar(
+                x=dfs_df[2]['Energy_type'], 
+                y=dfs_df[2]['Energy_consumption']
+            )).update_layout(
+                title='Energy Consumption by Type in the US (2000)',
+                xaxis_title='Energy Type',
+                yaxis_title='Energy Consumption'
+            ),
+            'insight': 'This bar graph shows the distribution of energy consumption by type for the United States in the year 2000.',
+            'is_map': False
+        },
+        {
+            'title': 'Energy Production by Type in China (2015)',
+            'figure': go.Figure(data=go.Pie(
+                labels=dfs_df[3]['Energy_type'], 
+                values=dfs_df[3]['Energy_production']
+            )).update_layout(
+                title='Energy Production by Type in China (2015)'
+            ),
+            'insight': 'This pie chart shows the proportion of energy production by type for China in the year 2015.',
+            'is_map': False
+        },
+        {
+            'title': 'Energy Intensity per Capita in India (1990-2020)',
+            'figure': go.Figure(data=go.Scatter(
+                x=dfs_df[4]['Year'], 
+                y=dfs_df[4]['Energy_intensity_per_capita'], 
+                mode='lines'
+            )).update_layout(
+                title='Energy Intensity per Capita in India (1990-2020)',
+                xaxis_title='Year',
+                yaxis_title='Energy Intensity per Capita'
+            ),
+            'insight': 'This line graph shows how the energy intensity per capita has changed over time for India from 1990 to 2020.',
+            'is_map': False
+        }
+    ]
+big_func(dfs_df, figures)

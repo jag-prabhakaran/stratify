@@ -33,6 +33,7 @@
             color: #fff;
             border: none;
             cursor: pointer;
+            margin-right: 10px;
         }
         button:hover {
             background-color: #0056b3;
@@ -42,26 +43,34 @@
             padding: 10px;
             border: 1px solid #ddd;
         }
+        .button-group {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
     <div id="container">
         <h1>SQL Query Agent</h1>
         <textarea id="queryInput" placeholder="Enter your query here..."></textarea>
-        <button onclick="submitQuery()">Submit</button>
+        <div class="button-group">
+            <button onclick="submitQuery(true)">Ad-hoc Query</button>
+            <button onclick="submitQuery(false)">Structured Query</button>
+        </div>
         <h2>SQL Query:</h2>
         <pre id="sqlQueryOutput"></pre>
     </div>
 
     <script>
-        function submitQuery() {
+        function submitQuery(isAdhoc) {
             const query = document.getElementById('queryInput').value;
             fetch('/query', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ query })
+                body: JSON.stringify({ query, adhoc: isAdhoc })
             })
             .then(response => response.json())
             .then(data => {
@@ -72,4 +81,3 @@
     </script>
 </body>
 </html>
-
