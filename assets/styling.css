@@ -1,0 +1,100 @@
+/* styles.css */
+
+/* Body */
+body {
+    font-family: 'Calibri', sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+/* Main title */
+.main-title {
+    font-size: 2.5rem;
+    text-align: center;
+    padding: 20px 0;
+    margin-bottom: 20px;
+}
+
+/* Dashboard container */
+.dashboard-container {
+    display: flex;
+    height: 100vh; /* Make the dashboard container full height */
+}
+
+/* Sidebar */
+.sidebar {
+    width: 20%;
+    background-color: #2c3e50;
+    padding: 20px;
+    border-radius: 5px;
+    height: 100%;
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    position: fixed; /* Fixed position to stick to the viewport */
+    top: 0; /* Position at the top */
+    left: 0; /* Position at the left */
+}
+
+.sidebar-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar-item {
+    color: white;
+    text-decoration: none;
+    font-size: 1.5rem;
+    padding: 15px 0;
+}
+
+.sidebar-item:hover {
+    background-color: #1a252f;
+}
+
+/* Main content */
+.main-content {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two boxes per line */
+    gap: 10px; /* Spacing between graph boxes */
+    width: 80%; /* Adjusted width to accommodate the sidebar */
+    margin-left: 20%; /* Adjusted margin to accommodate the sidebar */
+    padding: 20px; /* Padding around the main content */
+}
+
+/* Graph box */
+.graph-box {
+    border: 2px solid #3498db;
+    padding: 20px;
+    margin: 10px;
+    border-radius: 5px;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* Graph title */
+.graph-title {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+}
+
+/* Graph and insight container */
+.graph-insight {
+    display: flex;
+    align-items: center;
+}
+
+/* Graph */
+.graph {
+    width: 70%; /* Adjusted width to fill the box */
+}
+
+/* Insight */
+.insight {
+    width: 30%; /* Adjusted width to fill the box */
+    border: 1px solid #3498db;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px;
+}
