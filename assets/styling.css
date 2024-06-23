@@ -19,7 +19,9 @@ body {
 /* Dashboard container */
 .dashboard-container {
     display: flex;
-    height: 100vh; /* Make the dashboard container full height */
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
 }
 
 /* Sidebar */
@@ -56,7 +58,7 @@ body {
 .main-content {
     display: grid;
     grid-template-columns: repeat(2, 1fr); /* Two boxes per line */
-    gap: 10px; /* Spacing between graph boxes */
+    gap: 20px; /* Spacing between graph boxes */
     width: 80%; /* Adjusted width to accommodate the sidebar */
     margin-left: 20%; /* Adjusted margin to accommodate the sidebar */
     padding: 20px; /* Padding around the main content */
@@ -70,6 +72,11 @@ body {
     border-radius: 10px; /* Rounded corners */
     background-color: white;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+.graph-box:hover {
+    transform: scale(1.02);
 }
 
 /* Double width for map plots */
@@ -80,4 +87,14 @@ body {
 /* Graph */
 .graph {
     width: 100%; /* Adjusted width to fill the box */
+}
+
+/* Large graph view */
+.large-graph {
+    width: 100%;
+}
+
+/* Back button */
+#back-button {
+    margin-top: 20px;
 }
