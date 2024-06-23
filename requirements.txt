@@ -1,1 +1,9 @@
+llama-index-callbacks-arize-phoenix
+llama-index-embeddings-openai
+pyvis
+arize-phoenix
+llama-index-llms-openai
 pandas
+numpy
+llama-index
+flask
