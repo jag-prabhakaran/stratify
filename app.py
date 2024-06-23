@@ -204,6 +204,7 @@ def process_agent_response_fn(task: Task, state: Dict[str, Any], response_dict: 
         response_dict["is_done"],
     )
 
+
 process_agent_response = AgentFnComponent(fn=process_agent_response_fn)
 
 # Set up the Query Pipeline
@@ -264,6 +265,48 @@ def save_python(ipt):
 
 def execute_python_code():
     os.system("python demo.py")
+    
+    
+def plotly_template():
+    return '''figures = [
+    {
+        'title': 'Line Plot',
+        'figure': go.Figure(data=go.Scatter(x=[1, 2, 3], y=[4, 1, 2], mode='lines')),
+        'insight': 'This is a line plot showing a decreasing trend.',
+        'is_map': False
+    },
+    {
+        'title': 'Bar Chart',
+        'figure': go.Figure(data=go.Bar(x=[1, 2, 3], y=[2, 5, 3])),
+        'insight': 'This bar chart shows that the second category has the highest value.',
+        'is_map': False
+    },
+    {
+        'title': 'Pie Chart',
+        'figure': go.Figure(data=go.Pie(labels=['A', 'B', 'C'], values=[30, 50, 20])),
+        'insight': 'This pie chart shows that category B is the largest.',
+        'is_map': False
+    },
+    {
+        'title': 'Scatter Plot',
+        'figure': go.Figure(data=go.Scatter(x=[1, 2, 3], y=[2, 4, 5], mode='markers')),
+        'insight': 'This scatter plot shows a positive correlation.',
+        'is_map': False
+    },
+    {
+        'title': 'Map Plot',
+        'figure': go.Figure(data=go.Scattergeo(lon=[-75, -80, -70], lat=[45, 50, 40], mode='markers')).update_layout(height=600, margin={"r":0,"t":0,"l":0,"b":0}),
+        'insight': 'This is a map plot showing geographic locations.',
+        'is_map': True
+    }
+    ]'''
+    
+def context(query: str) -> Task:
+    context = "\n".join([f"Table {info.table_name}: {info.table_summary} {info.table_name} columns: {info.column_names}" for info in table_infos])
+    full_query = f"{query}\nHere is info about the tables: \n{context}"
+    return full_query
+    
+    
 
 @app.route('/')
 def index():
@@ -273,53 +316,128 @@ def index():
 def query():
     data = request.json
     user_query = data.get('query')
-    task = create_task_with_table_context(user_query)
-    step_output = agent.run_step(task.task_id)
-    step_output.is_last = True
-    response = agent.finalize_response(task.task_id)
-    result = sql_query['input']
-    database = "climate"
-    system_role = f'Write python code to select relevant data. Use the SQL query provided to connect to the Database and retrieve data. The database name is {database}.db. Please create a data frame from relevant data and print the dataframe. Only use the sql i provide and do not generate your own. create a function called return_df() to return the df. The db name is {database}. Do not limit data at all.'
-    max_tokens = 2500
-    
-    question = f"Question: {user_query} \nSQL Query: {result}"
-    
-    client = OpenAI()
+    adhoc = False
+    if adhoc:
+        task = create_task_with_table_context(user_query)
+        step_output = agent.run_step(task.task_id)
+        step_output.is_last = True
+        response = agent.finalize_response(task.task_id)
+        result = sql_query['input']
+        database = "climate"
+        system_role = f'Write python code to select relevant data. Use the SQL query provided to connect to the Database and retrieve data. The database name is {database}.db. Please create a data frame from relevant data and print the dataframe. Only use the sql i provide and do not generate your own. create a function called return_df() to return the df. The db name is {database}. Do not limit data at all.'
+        max_tokens = 2500
+        
+        question = f"Question: {user_query} \nSQL Query: {result}"
+        
+        client = OpenAI()
 
-    def get_gpt_result(system_role, question, max_tokens):
-        response = client.chat.completions.create(
-            model="gpt-4",
-            max_tokens=max_tokens,
-            temperature=0,
-            messages=[
-                {"role": "system", "content": system_role},
-                {"role": "user", "content": question}
-            ]
-        )
+        def get_gpt_result(system_role, question, max_tokens):
+            response = client.chat.completions.create(
+                model="gpt-4",
+                max_tokens=max_tokens,
+                temperature=0,
+                messages=[
+                    {"role": "system", "content": system_role},
+                    {"role": "user", "content": question}
+                ]
+            )
 
-        return response
-    
-    response = get_gpt_result(system_role, question, max_tokens)
-    text = response.choices[0].message.content
-    try:
-      matches = find_all(text, "```")
-      matches_list = [x for x in matches]
+            return response
+        
+        response = get_gpt_result(system_role, question, max_tokens)
+        text = response.choices[0].message.content
+        try:
+            matches = find_all(text, "```")
+            matches_list = [x for x in matches]
 
-      python = text[matches_list[0] + 10:matches_list[1]]
-    except:
-        python = text
-    
-    save_python(python)
-    from demo import return_df
-    df = return_df()
-    data = df.to_string()
-    question = "Question: " + user_query + '\nData: \n' + data + '\nOnline information: \n'
-    print(f'QUESTION: {question}')
-    system_role2 = 'Generate analysis and insights about the data in 5 bullet points.  Only choose relevant information to generate deeper insights. Use actual numbers in each bulletpoint to validate your analysis. do not simply just use words. Do not ever say data provided does not include information. or anything along the lines of data is limiting. every query is valid and in the database.'
-    response2 = get_gpt_result(system_role2, question, max_tokens)
-    text2 = response2.choices[0].message.content
-    
-    return jsonify({"sql_query": text2})
+            python = text[matches_list[0] + 10:matches_list[1]]
+        except:
+            python = text
+        
+        save_python(python)
+        from demo import return_df
+        df = return_df()
+        data = df.to_string()
+        question = "Question: " + user_query + '\nData: \n' + data + '\nOnline information: \n'
+        print(f'QUESTION: {question}')
+        system_role2 = 'Generate analysis and insights about the data in 5 bullet points.  Only choose relevant information to generate deeper insights. Use actual numbers in each bulletpoint to validate your analysis. do not simply just use words. Do not ever say data provided does not include information. or anything along the lines of data is limiting. every query is valid and in the database.'
+        response2 = get_gpt_result(system_role2, question, max_tokens)
+        text2 = response2.choices[0].message.content
+        
+        return jsonify({"sql_query": text2})
+    else:
+        max_tokens = 2500
+        print("starting else:")
+        system_role = '''generate questions to serve as basis to generate sql query. you simply return 5 bullet point questions do not write any queries.'''
+        quest_order = 'can you give me 5 question to track co2 emissions per country, change in temperature over time, types of energy consumptions, and to your choice 2 different interesting graphs from the data provided. ythese quesitons serve as the basis for me to generate sql queries. There should be 5 types of graphs that plotly can make. these questions should answer for 1. map graph, 2. scatter plot, 3 bar graph, 4. pie chart, 5. line graph. I need quesitons to generate exactly those 5 graphs. Do not give vague questions. say with specificity. i.e no saying specific year give me the actual year instead. okay so also dont tell me what type of graph everything is. just follow this order of 1-5 and those types as well.'
+        
+        database = "climate"
+        cont = context(quest_order)
+        question = quest_order + "\n" + cont
+        
+        client = OpenAI()
+
+        def get_gpt_result(system_role, question, max_tokens):
+            response = client.chat.completions.create(
+                model="gpt-4",
+                max_tokens=max_tokens,
+                temperature=0,
+                messages=[
+                    {"role": "system", "content": system_role},
+                    {"role": "user", "content": question}
+                ]
+            )
+
+            return response
+        response = get_gpt_result(system_role, question, max_tokens)
+        text = response.choices[0].message.content
+        question_list = text.split("\n")
+        print(f'these are the questions beins asked {question_list}')
+        
+        sql_queries = []
+        for question in question_list:
+            task = create_task_with_table_context(question)
+            step_output = agent.run_step(task.task_id)
+            step_output.is_last = True
+            response = agent.finalize_response(task.task_id)
+            result = sql_query['input']
+            sql_queries.append(result)
+        dfs_list = []
+        for q in sql_queries:
+            system_role = f'Write python code to select relevant data. Use the SQL query provided to connect to the Database and retrieve data. The database name is {database}.db. Please create a data frame from relevant data and print the dataframe. Only use the sql i provide and do not generate your own. create a function called return_df() to return the df. The db name is {database}. Do not limit data at all.'
+            max_tokens = 2500
+            
+            question = f"Question: {user_query} \nSQL Query: {result}"
+            
+            client = OpenAI()
+            
+            response = get_gpt_result(system_role, question, max_tokens)
+            text = response.choices[0].message.content
+            try:
+                matches = find_all(text, "```")
+                matches_list = [x for x in matches]
+
+                python = text[matches_list[0] + 10:matches_list[1]]
+            except:
+                python = text
+            
+            save_python(python)
+            from demo import return_df
+            df = return_df()
+            data = df.to_string()
+            dfs_list.append(data)
+        
+        temp = plotly_template()
+        system_role = f'Generate python code for plotly graphs in the provided template for the requested infromation along with the questions they are answering for context with the df in mind. the plots should be in this order: 1. map graph, 2. scatter plot, 3 bar graph, 4. pie chart, 5. line graph. Only use this format and return in square brackets as such do not return anything else.\n' + temp + "Questions for context:\n" + ",".join(question_list)
+        question = ''
+        for i in range(len(dfs_list)):
+            question = "1: " + dfs_list[i]
+        
+        response = get_gpt_result(system_role, question, max_tokens)
+        text = response.choices[0].message.content
+        
+        return jsonify({"sql_query": text})
+        
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8222)
