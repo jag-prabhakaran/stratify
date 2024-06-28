@@ -18,8 +18,8 @@ services:
     ports:
       - "8222:8222"
     environment:
-      - OPENAI_API_KEY=sk-proj-ZM51aF94F9s9LMnhNuH7T3BlbkFJiHyWZz423294SFitiFb2
-      - COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
+      - OPENAI_API_KEY=OPENAI
+      - COLLECTOR_ENDPOINT=http://phoenix:606/v1/traces
     depends_on:
       phoenix:
         condition: service_healthy
