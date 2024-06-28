@@ -61,7 +61,6 @@ app = Flask(__name__)
 engine = create_engine("sqlite:///climate.db")
 sql_database = SQLDatabase(engine)
 
-os.environ['OPENAI_API_KEY'] = 'sk-proj-ZM51aF94F9s9LMnhNuH7T3BlbkFJiHyWZz423294SFitiFb2'
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def get_table_info(sql_database):
